@@ -5,7 +5,7 @@ from flask import Flask, jsonify, render_template, request
 app = Flask(__name__)
 
 # 🔑 Configure Gemini
-genai.configure(api_key="AIzaSyCuHChymzqsr1w7rX-qdq5evDuR99aQdSM")
+genai.configure(api_key="")
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 @app.route("/")
