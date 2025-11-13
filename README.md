@@ -79,7 +79,6 @@ Or permanently (PowerShell / system settings) depending on your preference.
 After installing dependencies and configuring the API key:
 
 ```
-cd C:\Users\Vansh\Documents\Chatbot-MiniProject
 python app.py
 ```
 
