@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIT-WPU Assistant</title>
+    <style>
+        :root {
+            --mit-blue: #004A98;
+            --mit-light-blue: #F0F7FF;
+            --mit-accent-blue: #007BFF;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --background-light: #FFFFFF;
+            --border-color: #DEE2E6;
+        }
+
+        body {
+            font-family: "Segoe UI", "Roboto", sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            /* 1. Add background image with a blue tint overlay */
+            background: linear-gradient(rgba(0, 74, 152, 0.6), rgba(0, 74, 152, 0.6)), url("static/mitbg.png") no-repeat center center;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            /* Prevents scrollbars from the main content */
+        }
+
+        /* 2. Style for the centered welcome text */
+        .welcome-container {
+            color: white;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+        }
+
+        .welcome-container h1 {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-container p {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* ===== Floating Chat Button ===== */
+        #chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--background-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        #chat-toggle:hover {
+            background: var(--mit-accent-blue);
+            transform: scale(1.05);
+        }
+
+        #chat-toggle img {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* Greeting Bubble */
+        #chat-greeting {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background: white;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            animation: fadeInUp 0.6s ease forwards;
+            z-index: 999;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== Chatbox Widget ===== */
+        #chatbox {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 420px;
+            height: 650px;
+            background: var(--background-light);
+            border-radius: 16px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        /* ===== Header ===== */
+        #header {
+            background: var(--mit-blue);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        #header img {
+            height: 32px;
+            margin-right: 12px;
+        }
+
+        #header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        #close-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-left: auto;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        #close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        #close-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* ===== Messages Area ===== */
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--mit-light-blue);
+        }
+
+        .msg {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 15px;
+            max-width: 85%;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .msg-content {
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin: 0 10px;
+            background-color: var(--border-color);
+            /* Fallback color */
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+            /* Prevent avatar from shrinking */
+        }
+
+        .user {
+            margin-left: auto;
+            flex-direction: row-reverse;
+        }
+
+        .user .msg-content {
+            background: var(--mit-accent-blue);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .user .avatar {
+            /* Path to your user image in the static folder */
+            background-image: url("{{ url_for('static', filename='user-avatar.png') }}");
+        }
+
+        .bot {
+            margin-right: auto;
+        }
+
+        .bot .msg-content {
+            background: var(--background-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .bot .avatar {
+            /* Path to your bot image in the static folder */
+            background-image: url("{{ url_for('static', filename='bot-avatar.png') }}");
+            background-color: transparent;
+            /* Ensure image is not hidden by a color */
+        }
+
+        /* ===== Input Area ===== */
+        #input-area {
+            display: flex;
+            border-top: 1px solid var(--border-color);
+            background: var(--background-light);
+            padding: 12px;
+            align-items: center;
+        }
+
+        #userInput {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 18px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        #sendBtn {
+            background: var(--mit-blue);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sendBtn:hover {
+            background: var(--mit-accent-blue);
+        }
+
+        #sendBtn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* ===== Responsiveness ===== */
+        @media (max-width: 480px) {
+            /* Make chatbox larger on mobile, but not full screen */
+            #chatbox {
+                width: auto; /* Adjust width automatically */
+                left: 10px; /* Add margin on the left */
+                right: 10px; /* Add margin on the right */
+                height: 85%;
+                max-height: 600px;
+                bottom: 0;
+                border-radius: 16px 16px 0 0;
+                animation: none;
+            }
+
+            /* Adjust floating button and greeting bubble position */
+            #chat-toggle {
+                bottom: 15px;
+                right: 15px;
+            }
+
+            #chat-greeting {
+                bottom: 85px;
+                right: 15px;
+            }
+
+            /* Adjust padding for smaller screen real estate */
+            #messages {
+                padding: 15px;
+            }
+
+            #input-area {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Centered Welcome Message -->
+    <div class="welcome-container">
+        <h1>Welcome to MIT-WPU</h1>
+        <p>Your Guide to Excellence and Innovation.</p>
+    </div>
+
+    <!-- Floating Toggle Button -->
+    <div id="chat-toggle">
+        <img src="static/mitlogo.png" alt="Chat now with MIT-WPU Bot">
+    </div>
+
+    <!-- Greeting Bubble -->
+    <div id="chat-greeting">👋 Hi, I'm MIT-WPU Bot. How can I help?</div>
+
+    <!-- Chatbox -->
+    <div id="chatbox">
+        <div id="header">
+            <img src="{{ url_for('static', filename='mitlogo.png') }}" alt="MIT-WPU Logo">
+            <h2>MIT-WPU Assistant</h2>
+            <button id="close-btn" title="Close Chat">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="messages"></div>
+
+        <div id="input-area">
+            <input type="text" id="userInput" placeholder="Ask about admissions, courses...">
+            <button id="sendBtn" onclick="sendMessage()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatToggle = document.getElementById("chat-toggle");
+        const chatbox = document.getElementById("chatbox");
+        const greeting = document.getElementById("chat-greeting");
+        const userInput = document.getElementById("userInput");
+        const messagesDiv = document.getElementById("messages");
+        const closeBtn = document.getElementById("close-btn");
+
+        // Function to toggle chat visibility
+        function toggleChat() {
+            const isChatOpen = chatbox.style.display === "flex";
+            if (isChatOpen) {
+                chatbox.style.display = "none";
+            } else {
+                chatbox.style.display = "flex";
+                greeting.style.display = "none"; // Hide greeting when opening
+                // Start a new chat only if it's the first time opening
+                if (messagesDiv.children.length === 0) {
+                    newChat();
+                }
+            }
+        }
+
+        // The toggle button now opens and closes the chat
+        chatToggle.addEventListener("click", toggleChat);
+
+        // The close button in the header also closes the chat
+        closeBtn.addEventListener("click", () => {
+            chatbox.style.display = "none";
+        });
+
+        // Send message with Enter key
+        userInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, "user");
+            userInput.value = "";
+
+            try {
+                const res = await fetch("/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await res.json();
+                addMessage(data.response, "bot");
+            } catch (error) {
+                addMessage("⚠️ Error connecting to server.", "bot");
+            }
+        }
+
+        function addMessage(text, type) {
+            const msgContainer = document.createElement("div");
+            msgContainer.className = "msg " + type;
+
+            const avatar = document.createElement("div");
+            avatar.className = "avatar";
+
+            const msgContent = document.createElement("div");
+            msgContent.className = "msg-content";
+            
+            if (type === 'bot') {
+                msgContent.innerHTML = text; // Use innerHTML to render formatted bot responses
+            } else {
+                msgContent.textContent = text; // Use textContent for user messages to prevent XSS
+            }
+
+            msgContainer.appendChild(avatar);
+            msgContainer.appendChild(msgContent);
+            messagesDiv.appendChild(msgContainer);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function newChat() {
+            messagesDiv.innerHTML = "";
+            addMessage("👋 Hello! I'm the MIT-WPU Assistant. How can I help you today?", "bot");
+        }
+    </script>
+</body>
+
+</html>
